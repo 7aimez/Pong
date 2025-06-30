@@ -22,18 +22,40 @@ let ball = {
 let playerScore = 0;
 let aiScore = 0;
 
-let isPaused = false;
+let isPaused = true;
+let showGetReady = false;
 let pauseTimer = 0;
-const PAUSE_AFTER_SCORE = 1200; // ms
+const PAUSE_AFTER_SCORE = 1200; // ms (pause after a score)
+const SHOW_GET_READY_DELAY = 300; // ms (delay before Get Ready! text appears)
+const GAME_START_DELAY = 1200; // ms (delay before first round)
 
-// Mouse control for player paddle
-canvas.addEventListener('mousemove', function (evt) {
-    const rect = canvas.getBoundingClientRect();
-    const mouseY = evt.clientY - rect.top;
-    playerY = mouseY - PADDLE_HEIGHT / 2;
-    // Clamp paddle inside canvas
-    playerY = Math.max(Math.min(playerY, canvas.height - PADDLE_HEIGHT), 0);
+let upPressed = false;
+let downPressed = false;
+
+// Keyboard control for player paddle
+document.addEventListener('keydown', function (evt) {
+    if (evt.key === "ArrowUp") {
+        upPressed = true;
+    } else if (evt.key === "ArrowDown") {
+        downPressed = true;
+    }
 });
+document.addEventListener('keyup', function (evt) {
+    if (evt.key === "ArrowUp") {
+        upPressed = false;
+    } else if (evt.key === "ArrowDown") {
+        downPressed = false;
+    }
+});
+
+// Mouse control (optional, can disable if you want only key control)
+// canvas.addEventListener('mousemove', function (evt) {
+//     const rect = canvas.getBoundingClientRect();
+//     const mouseY = evt.clientY - rect.top;
+//     playerY = mouseY - PADDLE_HEIGHT / 2;
+//     // Clamp paddle inside canvas
+//     playerY = Math.max(Math.min(playerY, canvas.height - PADDLE_HEIGHT), 0);
+// });
 
 function drawRect(x, y, w, h, color) {
     ctx.fillStyle = color;
@@ -104,8 +126,24 @@ function aiMove() {
     aiY = Math.max(Math.min(aiY, canvas.height - PADDLE_HEIGHT), 0);
 }
 
+function updatePlayerPaddle() {
+    if (upPressed) {
+        playerY -= 7;
+    }
+    if (downPressed) {
+        playerY += 7;
+    }
+    // Clamp paddle inside canvas
+    playerY = Math.max(Math.min(playerY, canvas.height - PADDLE_HEIGHT), 0);
+}
+
 function update() {
-    if (isPaused) return;
+    if (isPaused) {
+        updatePlayerPaddle();
+        return;
+    }
+
+    updatePlayerPaddle();
 
     // Ball movement
     ball.x += ball.vx;
@@ -178,11 +216,30 @@ function update() {
 
 function startPause() {
     isPaused = true;
+    showGetReady = false;
     stopBall();
     setTimeout(() => {
-        resetBall();
-        isPaused = false;
-    }, PAUSE_AFTER_SCORE);
+        showGetReady = true;
+        setTimeout(() => {
+            resetBall();
+            isPaused = false;
+            showGetReady = false;
+        }, PAUSE_AFTER_SCORE - SHOW_GET_READY_DELAY);
+    }, SHOW_GET_READY_DELAY);
+}
+
+function startGameWithDelay() {
+    isPaused = true;
+    showGetReady = false;
+    stopBall();
+    setTimeout(() => {
+        showGetReady = true;
+        setTimeout(() => {
+            resetBall();
+            isPaused = false;
+            showGetReady = false;
+        }, PAUSE_AFTER_SCORE - SHOW_GET_READY_DELAY);
+    }, GAME_START_DELAY);
 }
 
 function render() {
@@ -212,7 +269,7 @@ function render() {
     drawText(aiScore, canvas.width / 2 + 28, 50);
 
     // Pause info
-    if (isPaused) {
+    if (showGetReady) {
         ctx.fillStyle = "#eee";
         ctx.font = "bold 32px Arial";
         ctx.textAlign = "center";
@@ -227,5 +284,6 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
-resetBall();
+// Initial game start with a delay
+startGameWithDelay();
 gameLoop();
