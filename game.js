@@ -22,6 +22,10 @@ let ball = {
 let playerScore = 0;
 let aiScore = 0;
 
+let isPaused = false;
+let pauseTimer = 0;
+const PAUSE_AFTER_SCORE = 1200; // ms
+
 // Mouse control for player paddle
 canvas.addEventListener('mousemove', function (evt) {
     const rect = canvas.getBoundingClientRect();
@@ -74,6 +78,11 @@ function resetBall() {
     ball.vy = dir.vy;
 }
 
+function stopBall() {
+    ball.vx = 0;
+    ball.vy = 0;
+}
+
 function collision(paddleX, paddleY, paddleW, paddleH, ball) {
     return (
         ball.x + ball.radius > paddleX &&
@@ -96,6 +105,8 @@ function aiMove() {
 }
 
 function update() {
+    if (isPaused) return;
+
     // Ball movement
     ball.x += ball.vx;
     ball.y += ball.vy;
@@ -156,13 +167,22 @@ function update() {
     // Score update
     if (ball.x - ball.radius < 0) {
         aiScore++;
-        resetBall();
+        startPause();
     } else if (ball.x + ball.radius > canvas.width) {
         playerScore++;
-        resetBall();
+        startPause();
     }
 
     aiMove();
+}
+
+function startPause() {
+    isPaused = true;
+    stopBall();
+    setTimeout(() => {
+        resetBall();
+        isPaused = false;
+    }, PAUSE_AFTER_SCORE);
 }
 
 function render() {
@@ -190,6 +210,15 @@ function render() {
     // Score
     drawText(playerScore, canvas.width / 2 - 50, 50);
     drawText(aiScore, canvas.width / 2 + 28, 50);
+
+    // Pause info
+    if (isPaused) {
+        ctx.fillStyle = "#eee";
+        ctx.font = "bold 32px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("Get Ready!", canvas.width / 2, canvas.height / 2);
+        ctx.textAlign = "start";
+    }
 }
 
 function gameLoop() {
