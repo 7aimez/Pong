@@ -6,6 +6,7 @@ const PADDLE_WIDTH = 12;
 const PADDLE_HEIGHT = 90;
 const PADDLE_MARGIN = 18;
 const BALL_RADIUS = 10;
+const BALL_SPEED = 7;
 
 let playerY = canvas.height / 2 - PADDLE_HEIGHT / 2;
 let aiY = canvas.height / 2 - PADDLE_HEIGHT / 2;
@@ -13,8 +14,8 @@ let aiY = canvas.height / 2 - PADDLE_HEIGHT / 2;
 let ball = {
     x: canvas.width / 2,
     y: canvas.height / 2,
-    vx: 6 * (Math.random() < 0.5 ? 1 : -1),
-    vy: 4 * (Math.random() < 0.5 ? 1 : -1),
+    vx: 0,
+    vy: 0,
     radius: BALL_RADIUS
 };
 
@@ -55,15 +56,22 @@ function drawText(text, x, y) {
     ctx.fillText(text, x, y);
 }
 
+function randomBallDirection() {
+    // random angle between -45 and 45 degrees, not 0
+    let angle = (Math.random() * Math.PI / 2) - (Math.PI / 4);
+    let direction = (Math.random() < 0.5) ? 1 : -1;
+    return {
+        vx: BALL_SPEED * Math.cos(angle) * direction,
+        vy: BALL_SPEED * Math.sin(angle)
+    };
+}
+
 function resetBall() {
     ball.x = canvas.width / 2;
     ball.y = canvas.height / 2;
-    // Ensure the ball does not move strictly horizontally or vertically
-    let angle = (Math.random() * Math.PI) / 2 - Math.PI / 4; // -45 to +45 deg
-    let direction = Math.random() < 0.5 ? 1 : -1;
-    let speed = 7;
-    ball.vx = speed * Math.cos(angle) * direction;
-    ball.vy = speed * Math.sin(angle);
+    let dir = randomBallDirection();
+    ball.vx = dir.vx;
+    ball.vy = dir.vy;
 }
 
 function collision(paddleX, paddleY, paddleW, paddleH, ball) {
@@ -94,54 +102,54 @@ function update() {
 
     // Top wall collision
     if (ball.y - ball.radius < 0) {
-        ball.y = ball.radius; // Correct position
+        ball.y = ball.radius;
         ball.vy *= -1;
     }
     // Bottom wall collision
     if (ball.y + ball.radius > canvas.height) {
-        ball.y = canvas.height - ball.radius; // Correct position
+        ball.y = canvas.height - ball.radius;
         ball.vy *= -1;
     }
 
     // Left paddle collision (player)
     if (
+        ball.vx < 0 &&
         collision(
             PADDLE_MARGIN,
             playerY,
             PADDLE_WIDTH,
             PADDLE_HEIGHT,
             ball
-        ) && ball.vx < 0
+        )
     ) {
-        ball.x = PADDLE_MARGIN + PADDLE_WIDTH + ball.radius; // Place ball outside paddle
-        ball.vx *= -1.05; // Bounce and increase speed
-        // Add some variation
+        ball.x = PADDLE_MARGIN + PADDLE_WIDTH + ball.radius;
         let collidePoint = ball.y - (playerY + PADDLE_HEIGHT / 2);
         collidePoint = collidePoint / (PADDLE_HEIGHT / 2);
         let angleRad = (Math.PI / 4) * collidePoint;
-        let speed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
-        ball.vx = speed * Math.cos(angleRad);
-        if (ball.vx < 0) ball.vx = -ball.vx; // Ensure right direction after math
+        let direction = 1;
+        let speed = Math.min(Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy) * 1.05, 15);
+        ball.vx = speed * Math.cos(angleRad) * direction;
         ball.vy = speed * Math.sin(angleRad);
     }
 
     // Right paddle collision (AI)
     if (
+        ball.vx > 0 &&
         collision(
             canvas.width - PADDLE_MARGIN - PADDLE_WIDTH,
             aiY,
             PADDLE_WIDTH,
             PADDLE_HEIGHT,
             ball
-        ) && ball.vx > 0
+        )
     ) {
-        ball.x = canvas.width - PADDLE_MARGIN - PADDLE_WIDTH - ball.radius; // Place ball outside paddle
-        ball.vx *= -1.05; // Bounce and increase speed
+        ball.x = canvas.width - PADDLE_MARGIN - PADDLE_WIDTH - ball.radius;
         let collidePoint = ball.y - (aiY + PADDLE_HEIGHT / 2);
         collidePoint = collidePoint / (PADDLE_HEIGHT / 2);
         let angleRad = (Math.PI / 4) * collidePoint;
-        let speed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
-        ball.vx = -Math.abs(speed * Math.cos(angleRad)); // Ensure left direction after math
+        let direction = -1;
+        let speed = Math.min(Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy) * 1.05, 15);
+        ball.vx = speed * Math.cos(angleRad) * direction;
         ball.vy = speed * Math.sin(angleRad);
     }
 
@@ -190,4 +198,5 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
+resetBall();
 gameLoop();
