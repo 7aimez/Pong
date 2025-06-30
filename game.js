@@ -58,8 +58,12 @@ function drawText(text, x, y) {
 function resetBall() {
     ball.x = canvas.width / 2;
     ball.y = canvas.height / 2;
-    ball.vx = 6 * (Math.random() < 0.5 ? 1 : -1);
-    ball.vy = 4 * (Math.random() < 0.5 ? 1 : -1);
+    // Ensure the ball does not move strictly horizontally or vertically
+    let angle = (Math.random() * Math.PI) / 2 - Math.PI / 4; // -45 to +45 deg
+    let direction = Math.random() < 0.5 ? 1 : -1;
+    let speed = 7;
+    ball.vx = speed * Math.cos(angle) * direction;
+    ball.vy = speed * Math.sin(angle);
 }
 
 function collision(paddleX, paddleY, paddleW, paddleH, ball) {
@@ -88,8 +92,14 @@ function update() {
     ball.x += ball.vx;
     ball.y += ball.vy;
 
-    // Top and bottom wall collision
-    if (ball.y - ball.radius < 0 || ball.y + ball.radius > canvas.height) {
+    // Top wall collision
+    if (ball.y - ball.radius < 0) {
+        ball.y = ball.radius; // Correct position
+        ball.vy *= -1;
+    }
+    // Bottom wall collision
+    if (ball.y + ball.radius > canvas.height) {
+        ball.y = canvas.height - ball.radius; // Correct position
         ball.vy *= -1;
     }
 
@@ -101,15 +111,18 @@ function update() {
             PADDLE_WIDTH,
             PADDLE_HEIGHT,
             ball
-        )
+        ) && ball.vx < 0
     ) {
-        ball.x = PADDLE_MARGIN + PADDLE_WIDTH + ball.radius; // Prevent sticking
+        ball.x = PADDLE_MARGIN + PADDLE_WIDTH + ball.radius; // Place ball outside paddle
         ball.vx *= -1.05; // Bounce and increase speed
         // Add some variation
         let collidePoint = ball.y - (playerY + PADDLE_HEIGHT / 2);
         collidePoint = collidePoint / (PADDLE_HEIGHT / 2);
         let angleRad = (Math.PI / 4) * collidePoint;
-        ball.vy = 6 * Math.sin(angleRad);
+        let speed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
+        ball.vx = speed * Math.cos(angleRad);
+        if (ball.vx < 0) ball.vx = -ball.vx; // Ensure right direction after math
+        ball.vy = speed * Math.sin(angleRad);
     }
 
     // Right paddle collision (AI)
@@ -120,14 +133,16 @@ function update() {
             PADDLE_WIDTH,
             PADDLE_HEIGHT,
             ball
-        )
+        ) && ball.vx > 0
     ) {
-        ball.x = canvas.width - PADDLE_MARGIN - PADDLE_WIDTH - ball.radius; // Prevent sticking
+        ball.x = canvas.width - PADDLE_MARGIN - PADDLE_WIDTH - ball.radius; // Place ball outside paddle
         ball.vx *= -1.05; // Bounce and increase speed
         let collidePoint = ball.y - (aiY + PADDLE_HEIGHT / 2);
         collidePoint = collidePoint / (PADDLE_HEIGHT / 2);
         let angleRad = (Math.PI / 4) * collidePoint;
-        ball.vy = 6 * Math.sin(angleRad);
+        let speed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
+        ball.vx = -Math.abs(speed * Math.cos(angleRad)); // Ensure left direction after math
+        ball.vy = speed * Math.sin(angleRad);
     }
 
     // Score update
